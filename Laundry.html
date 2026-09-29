@@ -1,0 +1,790 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistem Manajemen Inventaris Barang Keluar Masuk</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .tab-content {
+            display: none;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        /* Custom scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col">
+
+    <!-- Navigation Header -->
+    <header class="bg-white border-b border-slate-200 sticky top-0 z-30 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-indigo-600 text-white p-2.5 rounded-xl shadow-md shadow-indigo-100">
+                    <i class="fa-solid fa-boxes-stacked text-lg"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg text-slate-900 tracking-tight">InventarisPro</h1>
+                    <p class="text-xs text-slate-500">Manajemen Barang Keluar Masuk & Status</p>
+                </div>
+            </div>
+            
+            <!-- Navigation Tabs -->
+            <nav class="hidden md:flex space-x-1">
+                <button onclick="switchTab('dashboard')" id="nav-dashboard" class="px-4 py-2 rounded-lg text-sm font-medium transition-all text-indigo-600 bg-indigo-50">
+                    <i class="fa-solid fa-chart-pie mr-2"></i>Dashboard & Status
+                </button>
+                <button onclick="switchTab('input')" id="nav-input" class="px-4 py-2 rounded-lg text-sm font-medium transition-all text-slate-600 hover:text-indigo-600 hover:bg-slate-100">
+                    <i class="fa-solid fa-plus-circle mr-2"></i>Input Barang
+                </button>
+                <button onclick="switchTab('completed')" id="nav-completed" class="px-4 py-2 rounded-lg text-sm font-medium transition-all text-slate-600 hover:text-indigo-600 hover:bg-slate-100">
+                    <i class="fa-solid fa-clipboard-check mr-2"></i>Log Barang Selesai <span id="completed-badge" class="ml-1.5 px-2 py-0.5 text-xs bg-slate-200 text-slate-700 rounded-full">0</span>
+                </button>
+            </nav>
+
+            <!-- Mobile menu button -->
+            <button onclick="toggleMobileMenu()" class="md:hidden p-2 rounded-lg text-slate-600 hover:bg-slate-100">
+                <i class="fa-solid fa-bars text-xl"></i>
+            </button>
+        </div>
+
+        <!-- Mobile Navigation Menu -->
+        <div id="mobile-menu" class="hidden md:hidden px-4 pt-2 pb-4 border-t border-slate-100 bg-white space-y-1">
+            <button onclick="switchTab('dashboard'); toggleMobileMenu();" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-indigo-600 bg-indigo-50">
+                <i class="fa-solid fa-chart-pie mr-2"></i>Dashboard & Status
+            </button>
+            <button onclick="switchTab('input'); toggleMobileMenu();" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100">
+                <i class="fa-solid fa-plus-circle mr-2"></i>Input Barang
+            </button>
+            <button onclick="switchTab('completed'); toggleMobileMenu();" class="w-full text-left px-3 py-2 rounded-lg text-sm font-medium text-slate-600 hover:bg-slate-100">
+                <i class="fa-solid fa-clipboard-check mr-2"></i>Log Barang Selesai
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+        <!-- NOTIFICATION TOAST -->
+        <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 max-w-md bg-slate-900 text-white px-4 py-3 rounded-xl shadow-xl flex items-center space-x-3">
+            <div id="toast-icon" class="text-emerald-400">
+                <i class="fa-solid fa-circle-check text-lg"></i>
+            </div>
+            <div>
+                <p id="toast-title" class="text-sm font-semibold">Berhasil!</p>
+                <p id="toast-message" class="text-xs text-slate-300">Data inventaris berhasil diperbarui.</p>
+            </div>
+        </div>
+
+        <!-- TAB 1: DASHBOARD & LIVE TRACKING -->
+        <div id="view-dashboard" class="tab-content active space-y-6">
+            <!-- Summary Stats Cards -->
+            <div class="grid grid-cols-2 lg:grid-cols-6 gap-4">
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-500 text-xs font-medium">
+                        <span>Total Item</span>
+                        <i class="fa-solid fa-box text-indigo-500"></i>
+                    </div>
+                    <div class="mt-3 flex items-baseline">
+                        <span id="stat-total" class="text-2xl font-bold text-slate-900">0</span>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-500 text-xs font-medium">
+                        <span>Masuk</span>
+                        <i class="fa-solid fa-arrow-down text-blue-500"></i>
+                    </div>
+                    <div class="mt-3 flex items-baseline">
+                        <span id="stat-masuk" class="text-2xl font-bold text-blue-600">0</span>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-500 text-xs font-medium">
+                        <span>Sedang Dicuci</span>
+                        <i class="fa-solid fa-water text-cyan-500"></i>
+                    </div>
+                    <div class="mt-3 flex items-baseline">
+                        <span id="stat-cuci" class="text-2xl font-bold text-cyan-600">0</span>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-500 text-xs font-medium">
+                        <span>Proses Kirim</span>
+                        <i class="fa-solid fa-truck-fast text-amber-500"></i>
+                    </div>
+                    <div class="mt-3 flex items-baseline">
+                        <span id="stat-kirim" class="text-2xl font-bold text-amber-600">0</span>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-500 text-xs font-medium">
+                        <span>Packing</span>
+                        <i class="fa-solid fa-box-archive text-purple-500"></i>
+                    </div>
+                    <div class="mt-3 flex items-baseline">
+                        <span id="stat-packing" class="text-2xl font-bold text-purple-600">0</span>
+                    </div>
+                </div>
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between text-slate-500 text-xs font-medium">
+                        <span>Selesai</span>
+                        <i class="fa-solid fa-circle-check text-emerald-500"></i>
+                    </div>
+                    <div class="mt-3 flex items-baseline">
+                        <span id="stat-selesai" class="text-2xl font-bold text-emerald-600">0</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controls: Search & Filters -->
+            <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-col md:flex-row gap-4 items-center justify-between">
+                <div class="w-full md:w-96 relative">
+                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                        <i class="fa-solid fa-search"></i>
+                    </span>
+                    <input type="text" id="search-input" oninput="filterItems()" placeholder="Cari nama barang, kode, atau penerima..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
+                </div>
+                <div class="w-full md:w-auto flex flex-wrap gap-2 items-center">
+                    <span class="text-xs font-semibold text-slate-500 uppercase tracking-wider mr-1">Filter Status:</span>
+                    <button onclick="setStatusFilter('ALL')" id="filter-btn-ALL" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 text-white transition-all">Semua</button>
+                    <button onclick="setStatusFilter('Masuk')" id="filter-btn-Masuk" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all">Masuk</button>
+                    <button onclick="setStatusFilter('Sedang Dicuci')" id="filter-btn-Sedang Dicuci" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all">Sedang Dicuci</button>
+                    <button onclick="setStatusFilter('Proses Kirim')" id="filter-btn-Proses Kirim" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all">Proses Kirim</button>
+                    <button onclick="setStatusFilter('Packing')" id="filter-btn-Packing" class="filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all">Packing</button>
+                </div>
+            </div>
+
+            <!-- Active Items Grid / Cards -->
+            <div class="space-y-4">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-bold text-slate-900">Daftar Barang Aktif & Status Proses</h2>
+                    <button onclick="switchTab('input')" class="text-sm font-semibold text-indigo-600 hover:text-indigo-700 flex items-center">
+                        <i class="fa-solid fa-plus mr-1.5"></i>Tambah Barang Baru
+                    </button>
+                </div>
+
+                <div id="items-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <!-- Dynamic Items will be injected here -->
+                </div>
+
+                <!-- Empty State -->
+                <div id="empty-state" class="hidden bg-white border border-dashed border-slate-300 rounded-3xl p-12 text-center">
+                    <div class="w-16 h-16 bg-indigo-50 text-indigo-500 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+                        <i class="fa-solid fa-folder-open"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900 mb-1">Tidak ada data barang</h3>
+                    <p class="text-sm text-slate-500 max-w-sm mx-auto mb-6">Belum ada barang yang sesuai dengan filter atau pencarian saat ini.</p>
+                    <button onclick="switchTab('input')" class="px-4 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 shadow-md shadow-indigo-100 transition-all">
+                        Input Barang Sekarang
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- TAB 2: INPUT / MANAGE INVENTORY FORM -->
+        <div id="view-input" class="tab-content max-w-3xl mx-auto space-y-6">
+            <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm">
+                <div class="flex items-center justify-between pb-6 border-b border-slate-100 mb-6">
+                    <div>
+                        <h2 id="form-title" class="text-xl font-bold text-slate-900">Form Input Barang Keluar/Masuk</h2>
+                        <p class="text-sm text-slate-500">Lengkapi detail barang dan tentukan status proses saat ini.</p>
+                    </div>
+                    <div class="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center font-bold">
+                        <i class="fa-solid fa-pen-to-square"></i>
+                    </div>
+                </div>
+
+                <form id="inventory-form" onsubmit="handleFormSubmit(event)" class="space-y-6">
+                    <input type="hidden" id="item-id">
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <!-- Nama Barang -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Nama Barang <span class="text-rose-500">*</span></label>
+                            <input type="text" id="item-name" required placeholder="Contoh: Kain Sutra Premium / Mesin Cuci A" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
+                        </div>
+
+                        <!-- Kode / SKU -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Kode / SKU <span class="text-rose-500">*</span></label>
+                            <input type="text" id="item-code" required placeholder="Contoh: BRG-001" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <!-- Kategori Tipe (Masuk / Keluar) -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Tipe Arus Barang <span class="text-rose-500">*</span></label>
+                            <select id="item-type" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
+                                <option value="Masuk">Barang Masuk</option>
+                                <option value="Keluar">Barang Keluar</option>
+                            </select>
+                        </div>
+
+                        <!-- Jumlah / Kuantitas -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Jumlah & Satuan <span class="text-rose-500">*</span></label>
+                            <div class="flex space-x-2">
+                                <input type="number" id="item-qty" min="1" required placeholder="10" class="w-2/3 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
+                                <input type="text" id="item-unit" required placeholder="Pcs/Kg" class="w-1/3 px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                        <!-- Status Proses (Wajib ada pilihan: Masuk, Sedang Dicuci, Proses Kirim, Packing, Selesai) -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Status Proses <span class="text-rose-500">*</span></label>
+                            <select id="item-status" required class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all text-indigo-700">
+                                <option value="Masuk">📥 Masuk</option>
+                                <option value="Sedang Dicuci">🌊 Sedang Dicuci</option>
+                                <option value="Proses Kirim">🚚 Proses Kirim</option>
+                                <option value="Packing">📦 Packing</option>
+                                <option value="Selesai">✅ Selesai</option>
+                            </select>
+                        </div>
+
+                        <!-- Pengirim / Penerima / PIC -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">PIC / Pengirim / Penerima <span class="text-rose-500">*</span></label>
+                            <input type="text" id="item-pic" required placeholder="Nama Penanggung Jawab / Klien" class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all">
+                        </div>
+                    </div>
+
+                    <!-- Keterangan Tambahan -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-2">Catatan / Keterangan</label>
+                        <textarea id="item-notes" rows="3" placeholder="Tambahan catatan khusus mengenai barang..." class="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white transition-all"></textarea>
+                    </div>
+
+                    <!-- Form Action Buttons -->
+                    <div class="flex items-center justify-end space-x-3 pt-4 border-t border-slate-100">
+                        <button type="button" onclick="resetForm(); switchTab('dashboard');" class="px-5 py-2.5 rounded-xl text-sm font-semibold text-slate-600 hover:bg-slate-100 transition-all">
+                            Batal
+                        </button>
+                        <button type="submit" id="submit-btn" class="px-6 py-2.5 bg-indigo-600 text-white rounded-xl text-sm font-semibold hover:bg-indigo-700 shadow-md shadow-indigo-100 transition-all flex items-center">
+                            <i class="fa-solid fa-save mr-2"></i>Simpan Data Barang
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- TAB 3: DEDICATED LOG / COMPLETED ITEMS WITH DATE -->
+        <div id="view-completed" class="tab-content space-y-6">
+            <div class="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-sm">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-6 border-b border-slate-100 mb-6 gap-4">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-900">Daftar Barang Selesai & Riwayat Tanggal Keluar/Masuk</h2>
+                        <p class="text-sm text-slate-500">Arsip lengkap barang yang sudah berstatus <span class="font-semibold text-emerald-600">Selesai</span> beserta tanggal pencatatan dan penyelesaiannya.</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="exportData()" class="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-sm font-semibold transition-all flex items-center">
+                            <i class="fa-solid fa-download mr-2"></i>Ekspor Data
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Search Completed Log -->
+                <div class="mb-6">
+                    <div class="w-full sm:w-80 relative">
+                        <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
+                            <i class="fa-solid fa-search"></i>
+                        </span>
+                        <input type="text" id="search-completed" oninput="renderCompletedItems()" placeholder="Cari di log selesai..." class="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition-all">
+                    </div>
+                </div>
+
+                <!-- Completed Table -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-200 text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                                <th class="py-3 px-4">No</th>
+                                <th class="py-3 px-4">Kode SKU</th>
+                                <th class="py-3 px-4">Nama Barang</th>
+                                <th class="py-3 px-4">Tipe</th>
+                                <th class="py-3 px-4">Jumlah</th>
+                                <th class="py-3 px-4">PIC / Klien</th>
+                                <th class="py-3 px-4">Tanggal Masuk/Dibuat</th>
+                                <th class="py-3 px-4">Tanggal Selesai</th>
+                                <th class="py-3 px-4 text-center">Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody id="completed-table-body" class="divide-y divide-slate-100 text-sm text-slate-700">
+                            <!-- Injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Completed Empty State -->
+                <div id="completed-empty" class="hidden py-12 text-center">
+                    <div class="w-16 h-16 bg-emerald-50 text-emerald-500 rounded-2xl flex items-center justify-center mx-auto mb-4 text-2xl">
+                        <i class="fa-solid fa-clipboard-list"></i>
+                    </div>
+                    <h3 class="text-base font-bold text-slate-900 mb-1">Belum ada barang selesai</h3>
+                    <p class="text-sm text-slate-500 max-w-sm mx-auto">Barang yang statusnya diubah menjadi "Selesai" akan otomatis tercatat di halaman khusus ini lengkap dengan tanggalnya.</p>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white border-t border-slate-200 mt-12 py-6 text-center text-xs text-slate-500">
+        <div class="max-w-7xl mx-auto px-4">
+            <p>&copy; 2026 InventarisPro. Sistem Manajemen Barang Keluar Masuk & Tracking Status Modern.</p>
+        </div>
+    </footer>
+
+    <!-- JavaScript Application Logic -->
+    <script>
+        // Initial Mock Data with dates and statuses
+        let inventoryData = [
+            {
+                id: 'INV-101',
+                name: 'Kain Katun Premium',
+                code: 'KTN-01',
+                type: 'Masuk',
+                qty: 150,
+                unit: 'Meter',
+                status: 'Sedang Dicuci',
+                pic: 'Budi Santoso',
+                notes: 'Pencucian tahap pertama sebelum produksi pakaian.',
+                createdAt: '2026-06-01 08:30',
+                completedAt: null
+            },
+            {
+                id: 'INV-102',
+                name: 'Jaket Denim Vintage',
+                code: 'JKT-88',
+                type: 'Keluar',
+                qty: 25,
+                unit: 'Pcs',
+                status: 'Proses Kirim',
+                pic: 'Siti Aminah',
+                notes: 'Dikirim via Ekspedisi Kilat ke Cabang Bandung.',
+                createdAt: '2026-06-02 10:15',
+                completedAt: null
+            },
+            {
+                id: 'INV-103',
+                name: 'Seragam Kantor Eksklusif',
+                code: 'SRG-09',
+                type: 'Keluar',
+                qty: 40,
+                unit: 'Set',
+                status: 'Packing',
+                pic: 'Ahmad Fauzi',
+                notes: 'Pemberian label dan pembungkusan plastik vakum.',
+                createdAt: '2026-06-03 14:00',
+                completedAt: null
+            },
+            {
+                id: 'INV-104',
+                name: 'Bedcover Hotel Bintang 5',
+                code: 'BDC-55',
+                type: 'Masuk',
+                qty: 60,
+                unit: 'Pcs',
+                status: 'Selesai',
+                pic: 'Hotel Grand Luxury',
+                notes: 'Pencucian laundry komersial selesai dan siap diambil.',
+                createdAt: '2026-05-28 09:00',
+                completedAt: '2026-06-02 16:45'
+            }
+        ];
+
+        let currentFilterStatus = 'ALL';
+        let editingId = null;
+
+        // Initialize App on Load
+        window.addEventListener('DOMContentLoaded', () => {
+            renderDashboard();
+            renderCompletedItems();
+        });
+
+        // Tab Switcher
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.getElementById('view-' + tabId).classList.add('active');
+
+            // Update Nav Styles
+            ['dashboard', 'input', 'completed'].forEach(t => {
+                const btn = document.getElementById('nav-' + t);
+                if (btn) {
+                    if (t === tabId) {
+                        btn.className = "px-4 py-2 rounded-lg text-sm font-medium transition-all text-indigo-600 bg-indigo-50";
+                    } else {
+                        btn.className = "px-4 py-2 rounded-lg text-sm font-medium transition-all text-slate-600 hover:text-indigo-600 hover:bg-slate-100";
+                    }
+                }
+            });
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function toggleMobileMenu() {
+            const menu = document.getElementById('mobile-menu');
+            menu.classList.toggle('hidden');
+        }
+
+        // Toast notification helper
+        function showToast(title, message, isSuccess = true) {
+            const toast = document.getElementById('toast');
+            const toastTitle = document.getElementById('toast-title');
+            const toastMsg = document.getElementById('toast-message');
+            const toastIcon = document.getElementById('toast-icon');
+
+            toastTitle.textContent = title;
+            toastMsg.textContent = message;
+
+            if (isSuccess) {
+                toastIcon.innerHTML = '<i class="fa-solid fa-circle-check text-lg text-emerald-400"></i>';
+            } else {
+                toastIcon.innerHTML = '<i class="fa-solid fa-circle-exclamation text-lg text-amber-400"></i>';
+            }
+
+            toast.classList.remove('translate-y-20', 'opacity-0');
+            setTimeout(() => {
+                toast.classList.add('translate-y-20', 'opacity-0');
+            }, 3500);
+        }
+
+        // Status filter setter
+        function setStatusFilter(status) {
+            currentFilterStatus = status;
+            
+            // Highlight active button
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.className = "filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-100 text-slate-600 hover:bg-slate-200 transition-all";
+            });
+            const activeBtn = document.getElementById('filter-btn-' + status);
+            if (activeBtn) {
+                activeBtn.className = "filter-btn px-3 py-1.5 rounded-lg text-xs font-medium bg-indigo-600 text-white transition-all shadow-sm";
+            }
+
+            renderDashboard();
+        }
+
+        // Render Dashboard Stats and Grid
+        function renderDashboard() {
+            const searchQuery = document.getElementById('search-input').value.toLowerCase();
+            const grid = document.getElementById('items-grid');
+            const emptyState = document.getElementById('empty-state');
+
+            // Calculate Stats
+            const total = inventoryData.length;
+            const countMasuk = inventoryData.filter(i => i.status === 'Masuk').length;
+            const countCuci = inventoryData.filter(i => i.status === 'Sedang Dicuci').length;
+            const countKirim = inventoryData.filter(i => i.status === 'Proses Kirim').length;
+            const countPacking = inventoryData.filter(i => i.status === 'Packing').length;
+            const countSelesai = inventoryData.filter(i => i.status === 'Selesai').length;
+
+            document.getElementById('stat-total').textContent = total;
+            document.getElementById('stat-masuk').textContent = countMasuk;
+            document.getElementById('stat-cuci').textContent = countCuci;
+            document.getElementById('stat-kirim').textContent = countKirim;
+            document.getElementById('stat-packing').textContent = countPacking;
+            document.getElementById('stat-selesai').textContent = countSelesai;
+            document.getElementById('completed-badge').textContent = countSelesai;
+
+            // Filter items for dashboard (exclude completed items from main active grid if desired, or show all with filters)
+            // Here we show active items or filtered by status
+            let filtered = inventoryData.filter(item => {
+                const matchesSearch = item.name.toLowerCase().includes(searchQuery) || 
+                                      item.code.toLowerCase().includes(searchQuery) || 
+                                      item.pic.toLowerCase().includes(searchQuery);
+                const matchesStatus = currentFilterStatus === 'ALL' || item.status === currentFilterStatus;
+                return matchesSearch && matchesStatus;
+            });
+
+            grid.innerHTML = '';
+
+            if (filtered.length === 0) {
+                emptyState.classList.remove('hidden');
+            } else {
+                emptyState.classList.add('hidden');
+                filtered.forEach(item => {
+                    grid.appendChild(createItemCard(item));
+                });
+            }
+        }
+
+        // Create Individual Item Card Element
+        function createItemCard(item) {
+            const card = document.createElement('div');
+            card.className = "bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all flex flex-col justify-between relative overflow-hidden group";
+
+            // Status Badge Color Config
+            let statusColor = "bg-slate-100 text-slate-700 border-slate-200";
+            let statusIcon = "fa-circle";
+            if (item.status === 'Masuk') {
+                statusColor = "bg-blue-50 text-blue-700 border-blue-200";
+                statusIcon = "fa-arrow-down";
+            } else if (item.status === 'Sedang Dicuci') {
+                statusColor = "bg-cyan-50 text-cyan-700 border-cyan-200";
+                statusIcon = "fa-water";
+            } else if (item.status === 'Proses Kirim') {
+                statusColor = "bg-amber-50 text-amber-700 border-amber-200";
+                statusIcon = "fa-truck-fast";
+            } else if (item.status === 'Packing') {
+                statusColor = "bg-purple-50 text-purple-700 border-purple-200";
+                statusIcon = "fa-box-archive";
+            } else if (item.status === 'Selesai') {
+                statusColor = "bg-emerald-50 text-emerald-700 border-emerald-200";
+                statusIcon = "fa-circle-check";
+            }
+
+            let typeBadge = item.type === 'Masuk' ? 
+                '<span class="px-2 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-600 rounded-md">Barang Masuk</span>' : 
+                '<span class="px-2 py-0.5 text-xs font-semibold bg-rose-50 text-rose-600 rounded-md">Barang Keluar</span>';
+
+            card.innerHTML = `
+                <div>
+                    <div class="flex items-start justify-between mb-3">
+                        <div>
+                            <span class="text-xs font-mono text-slate-400 bg-slate-50 px-2 py-0.5 rounded border border-slate-100">${item.code}</span>
+                            <h3 class="font-bold text-slate-900 text-base mt-1">${item.name}</h3>
+                        </div>
+                        <div>${typeBadge}</div>
+                    </div>
+
+                    <div class="space-y-2 mb-4 text-xs text-slate-600">
+                        <div class="flex items-center justify-between py-1 border-b border-slate-50">
+                            <span class="text-slate-400">Jumlah:</span>
+                            <span class="font-semibold text-slate-800">${item.qty} ${item.unit}</span>
+                        </div>
+                        <div class="flex items-center justify-between py-1 border-b border-slate-50">
+                            <span class="text-slate-400">PIC / Klien:</span>
+                            <span class="font-semibold text-slate-800">${item.pic}</span>
+                        </div>
+                        <div class="flex items-center justify-between py-1 border-b border-slate-50">
+                            <span class="text-slate-400">Tanggal Dibuat:</span>
+                            <span class="font-medium text-slate-700">${item.createdAt}</span>
+                        </div>
+                        ${item.notes ? `<p class="text-slate-500 italic mt-2 bg-slate-50 p-2 rounded-lg">"${item.notes}"</p>` : ''}
+                    </div>
+                </div>
+
+                <div class="space-y-3 pt-3 border-t border-slate-100">
+                    <!-- Status selector dropdown on card for quick update -->
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-medium text-slate-500">Status Proses:</span>
+                        <select onchange="updateItemStatus('${item.id}', this.value)" class="text-xs font-semibold px-2.5 py-1 rounded-lg border ${statusColor} focus:outline-none focus:ring-2 focus:ring-indigo-500 cursor-pointer">
+                            <option value="Masuk" ${item.status === 'Masuk' ? 'selected' : ''}>📥 Masuk</option>
+                            <option value="Sedang Dicuci" ${item.status === 'Sedang Dicuci' ? 'selected' : ''}>🌊 Sedang Dicuci</option>
+                            <option value="Proses Kirim" ${item.status === 'Proses Kirim' ? 'selected' : ''}>🚚 Proses Kirim</option>
+                            <option value="Packing" ${item.status === 'Packing' ? 'selected' : ''}>📦 Packing</option>
+                            <option value="Selesai" ${item.status === 'Selesai' ? 'selected' : ''}>✅ Selesai</option>
+                        </select>
+                    </div>
+
+                    <div class="flex items-center justify-end space-x-2 pt-1">
+                        <button onclick="editItem('${item.id}')" class="px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold transition-all">
+                            <i class="fa-solid fa-pen mr-1"></i>Edit
+                        </button>
+                        <button onclick="deleteItem('${item.id}')" class="px-3 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-600 rounded-lg text-xs font-semibold transition-all">
+                            <i class="fa-solid fa-trash mr-1"></i>Hapus
+                        </button>
+                    </div>
+                </div>
+            `;
+            return card;
+        }
+
+        // Quick status update from card dropdown
+        function updateItemStatus(id, newStatus) {
+            const item = inventoryData.find(i => i.id === id);
+            if (item) {
+                const oldStatus = item.status;
+                item.status = newStatus;
+                
+                // If status changed to 'Selesai', record completedAt date
+                if (newStatus === 'Selesai' && !item.completedAt) {
+                    item.completedAt = getCurrentFormattedDate();
+                } else if (newStatus !== 'Selesai') {
+                    item.completedAt = null;
+                }
+
+                renderDashboard();
+                renderCompletedItems();
+                showToast("Status Diperbarui", `Barang ${item.name} dipindah ke status "${newStatus}".`);
+            }
+        }
+
+        // Form Submit Handler (Add or Edit)
+        function handleFormSubmit(event) {
+            event.preventDefault();
+
+            const id = document.getElementById('item-id').value || 'INV-' + Math.floor(100 + Math.random() * 900);
+            const name = document.getElementById('item-name').value;
+            const code = document.getElementById('item-code').value;
+            const type = document.getElementById('item-type').value;
+            const qty = parseInt(document.getElementById('item-qty').value);
+            const unit = document.getElementById('item-unit').value;
+            const status = document.getElementById('item-status').value;
+            const pic = document.getElementById('item-pic').value;
+            const notes = document.getElementById('item-notes').value;
+            const now = getCurrentFormattedDate();
+
+            const existingIndex = inventoryData.findIndex(i => i.id === id);
+
+            if (existingIndex >= 0) {
+                // Update
+                const prevItem = inventoryData[existingIndex];
+                inventoryData[existingIndex] = {
+                    ...prevItem,
+                    name, code, type, qty, unit, status, pic, notes,
+                    completedAt: status === 'Selesai' && !prevItem.completedAt ? now : (status === 'Selesai' ? prevItem.completedAt : null)
+                };
+                showToast("Berhasil Diubah", `Data barang ${name} berhasil diperbarui.`);
+            } else {
+                // Create New
+                const newItem = {
+                    id, name, code, type, qty, unit, status, pic, notes,
+                    createdAt: now,
+                    completedAt: status === 'Selesai' ? now : null
+                };
+                inventoryData.unshift(newItem);
+                showToast("Berhasil Disimpan", `Barang baru ${name} berhasil ditambahkan.`);
+            }
+
+            resetForm();
+            switchTab('dashboard');
+            renderDashboard();
+            renderCompletedItems();
+        }
+
+        // Edit item preparation
+        function editItem(id) {
+            const item = inventoryData.find(i => i.id === id);
+            if (item) {
+                document.getElementById('item-id').value = item.id;
+                document.getElementById('item-name').value = item.name;
+                document.getElementById('item-code').value = item.code;
+                document.getElementById('item-type').value = item.type;
+                document.getElementById('item-qty').value = item.qty;
+                document.getElementById('item-unit').value = item.unit;
+                document.getElementById('item-status').value = item.status;
+                document.getElementById('item-pic').value = item.pic;
+                document.getElementById('item-notes').value = item.notes;
+
+                document.getElementById('form-title').textContent = "Edit Data Barang: " + item.name;
+                switchTab('input');
+            }
+        }
+
+        // Delete Item
+        function deleteItem(id) {
+            if (confirm("Apakah Anda yakin ingin menghapus data barang ini?")) {
+                inventoryData = inventoryData.filter(i => i.id !== id);
+                renderDashboard();
+                renderCompletedItems();
+                showToast("Dihapus", "Data inventaris telah dihapus.", false);
+            }
+        }
+
+        // Reset Form
+        function resetForm() {
+            document.getElementById('inventory-form').reset();
+            document.getElementById('item-id').value = '';
+            document.getElementById('form-title').textContent = "Form Input Barang Keluar/Masuk";
+        }
+
+        // Render Dedicated Completed Items Log Table
+        function renderCompletedItems() {
+            const tbody = document.getElementById('completed-table-body');
+            const emptyEl = document.getElementById('completed-empty');
+            const searchQuery = document.getElementById('search-completed').value.toLowerCase();
+
+            const completedItems = inventoryData.filter(i => {
+                const isCompleted = i.status === 'Selesai';
+                const matchesSearch = i.name.toLowerCase().includes(searchQuery) || 
+                                      i.code.toLowerCase().includes(searchQuery) || 
+                                      i.pic.toLowerCase().includes(searchQuery);
+                return isCompleted && matchesSearch;
+            });
+
+            tbody.innerHTML = '';
+
+            if (completedItems.length === 0) {
+                emptyEl.classList.remove('hidden');
+            } else {
+                emptyEl.classList.add('hidden');
+                completedItems.forEach((item, index) => {
+                    const tr = document.createElement('tr');
+                    tr.className = "hover:bg-slate-50 transition-all";
+
+                    let typeBadge = item.type === 'Masuk' ? 
+                        '<span class="px-2 py-0.5 text-xs font-semibold bg-emerald-50 text-emerald-600 rounded-md">Masuk</span>' : 
+                        '<span class="px-2 py-0.5 text-xs font-semibold bg-rose-50 text-rose-600 rounded-md">Keluar</span>';
+
+                    tr.innerHTML = `
+                        <td class="py-3.5 px-4 font-medium text-slate-400">${index + 1}</td>
+                        <td class="py-3.5 px-4 font-mono font-semibold text-slate-700">${item.code}</td>
+                        <td class="py-3.5 px-4">
+                            <span class="font-bold text-slate-900 block">${item.name}</span>
+                            ${item.notes ? `<span class="text-xs text-slate-400 italic">${item.notes}</span>` : ''}
+                        </td>
+                        <td class="py-3.5 px-4">${typeBadge}</td>
+                        <td class="py-3.5 px-4 font-semibold text-slate-800">${item.qty} ${item.unit}</td>
+                        <td class="py-3.5 px-4 text-slate-600">${item.pic}</td>
+                        <td class="py-3.5 px-4 text-xs text-slate-500">${item.createdAt}</td>
+                        <td class="py-3.5 px-4">
+                            <span class="inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <i class="fa-regular fa-calendar-check mr-1.5"></i>${item.completedAt || '-'}
+                            </span>
+                        </td>
+                        <td class="py-3.5 px-4 text-center">
+                            <button onclick="deleteItem('${item.id}')" title="Hapus Log" class="p-1.5 hover:bg-rose-50 text-slate-400 hover:text-rose-600 rounded-lg transition-all">
+                                <i class="fa-solid fa-trash text-xs"></i>
+                            </button>
+                        </td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            }
+        }
+
+        // Helper: Get formatted current date string
+        function getCurrentFormattedDate() {
+            const d = new Date();
+            const year = d.getFullYear();
+            const month = String(d.getMonth() + 1).padStart(2, '0');
+            const day = String(d.getDate()).padStart(2, '0');
+            const hours = String(d.getHours()).padStart(2, '0');
+            const mins = String(d.getMinutes()).padStart(2, '0');
+            return `${year}-${month}-${day} ${hours}:${mins}`;
+        }
+
+        // Export data simulation
+        function exportData() {
+            showToast("Ekspor Berhasil", "Data laporan inventaris berhasil diunduh dalam format CSV.");
+        }
+    </script>
+</body>
+</html>
